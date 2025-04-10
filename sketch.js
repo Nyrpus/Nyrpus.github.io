@@ -2,8 +2,8 @@
  * Lava lamp visualization with shaders
  **/
 
-// SHADER CODE
-const frag = `#version 300 es
+// SHADER CODE - Modified for WebGL 1.0
+const frag = `
 precision highp float;
 
 //
@@ -11,8 +11,7 @@ precision highp float;
 // https://www.shadertoy.com/view/Wt3BWr
 //
 
-in vec2 texCoord;
-out vec4 outColor;
+varying vec2 vTexCoord;
 
 uniform float time;
 uniform float aspect;
@@ -98,6 +97,7 @@ vec3 bubbleColor (vec3 p) {
 	vec3 finalColor = vec3(0.);
 	float total = 0.;    
 	for (int i = 0; i < NUM_BUBBLES; i++)	{
+	  if (i >= n_bubbles) break;
 	  int j = i*3;
 		vec3 pos = p;
 		pos.xy += vec2(bubble[j],bubble[j+1]); 
@@ -111,19 +111,21 @@ vec3 bubbleColor (vec3 p) {
 		    finalColor += vec3(color[j], color[j+1], color[j+2]) * d;
 		}
 	}
-	return finalColor / total;
+	if (total > 0.0) {
+	  return finalColor / total;
+	}
+	return vec3(0.0);
 }
 
 void main() {
   vec4 fragColor = vec4(0., 0., 0., 1.);
 
-	vec3 dir = rayDirection(45., texCoord.xy); //rayDirection(45.0, iResolution.xy, fragCoord);
+	vec3 dir = rayDirection(45., vTexCoord.xy); 
 	
 	vec3 cam = vec3(0.0, 0.0, 5.0);
 	float dist = rayMarch(cam, dir, MIN_DIST, MAX_DIST);
 	
 	vec3 lightpos = vec3(4.0, 5.0, 10.0);
-	//vec3 lightpos = vec3(5.0 * cos(TIME * 0.25), 5.0 * sin(TIME * 0.5), sin(TIME) * 2.0);
 	
 	if (dist > MAX_DIST - EPSILON)	{
 		//MISS
@@ -132,36 +134,31 @@ void main() {
 	else 	{
 		//HIT
 		vec3 pos = cam + dir * dist;
-		//fragColor.xyz = gouraud(pos, estimateNormal(pos), lightpos, vec3(1.0, 0.0, 0.0), cam);
 		fragColor.xyz = gouraud(pos, estimateNormal(pos), lightpos, bubbleColor(pos), cam);
 	}
 	
-  outColor = fragColor;
+  gl_FragColor = fragColor;
 }`;
 
 /**
- * The vertex shader
+ * The vertex shader - Modified for WebGL 1.0
  **/
-const vert = `#version 300 es
-        
-uniform mat4 uModelViewMatrix;
-uniform mat4 uProjectionMatrix;
-
-in vec3 aPosition;
-in vec2 aTexCoord;
-out vec2 texCoord;
+const vert = `
+attribute vec3 aPosition;
+attribute vec2 aTexCoord;
+varying vec2 vTexCoord;
 
 void main() {
-		texCoord = aTexCoord;
-  	vec4 viewModelPosition = uModelViewMatrix * vec4(aPosition, 1.0);
-  	gl_Position = uProjectionMatrix * viewModelPosition;  
+    vTexCoord = aTexCoord;
+    vec4 positionVec4 = vec4(aPosition, 1.0);
+    gl_Position = positionVec4;
 }`;
 
 // PROCESSING SKETCH
 let myShader;
 let bubbles = [];
 let colors = [];
-let vel = []
+let vel = [];
 const max_n = 40;
 const n = 30;
 
@@ -169,7 +166,11 @@ function setup() {
   let canvas = createCanvas(windowWidth, windowHeight, WEBGL);
   canvas.parent('canvas-container');
   pixelDensity(1);
+  
+  // Create shader
   myShader = createShader(vert, frag);
+  
+  // Initialize bubbles and colors
   for (let i = 0; i < max_n; i++) {
     bubbles.push(random(-1,1), random(-1,1), random(0.01,0.2));
     colors.push(random(0.4,1), random(0.4,1), random(0.4,1));
@@ -178,6 +179,7 @@ function setup() {
 }
 
 function draw() {
+  // Update bubble positions
   for (let i = 0; i < n; i++) {
     let j = i*3+1;
     if (bubbles[j] > 1.1) { 
@@ -192,6 +194,8 @@ function draw() {
     }
     bubbles[j] += vel[i];
   }
+  
+  // Render with shader
   background(220);
   shader(myShader);
   myShader.setUniform("aspect", width/height); 
@@ -200,7 +204,7 @@ function draw() {
   myShader.setUniform("color", colors); 
   myShader.setUniform("n_bubbles", n);
   noStroke();
-  plane(width, height);
+  rect(0, 0, width, height);
 }
 
 function windowResized() {
