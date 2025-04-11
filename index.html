@@ -1,22 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nurpus</title>
-    <link rel="stylesheet" href="styles.css">
-    <!-- p5.js library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.5.0/p5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.5.0/addons/p5.sound.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animated Dots Background</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #19192B;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    #content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+      padding: 2rem;
+      border-radius: 5px;
+      background-color: rgba(25, 25, 43, 0.2);
+      backdrop-filter: blur(5px);
+    }
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    p {
+      font-size: 1.2rem;
+      max-width: 600px;
+      line-height: 1.6;
+    }
+  </style>
 </head>
 <body>
-    <div id="canvas-container"></div>
-    <div class="content">
-        <h1>Welcome</h1>
-        <h2>The site is under construction</h2> 
-        <h2>Feel free to chill here in the meantime</h2>
-    </div>
-    <!-- Loading sketch after page elements are defined -->
-    <script src="sketch.js"></script>
+  <div id="content">
+    <h1>Welcome to Nurpus.com</h1>
+    <p>You can do anything</p>
+    <p>Anything at all</p>
+    <p>The only limit is yourself</p>
+
+
+  </div>
+
+  <script>
+    let grid;
+    let dotts = [];
+    let maxRadius;
+    let blurAmount = 30; // Adjust blur intensity
+    let dotCanvas;
+    let bgcolor;
+    let defColor;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      
+      pixelDensity(1); // Important for consistent filter effects
+      dotCanvas = createGraphics(width, height);
+      
+      bgcolor = color(25, 25, 40);
+      background(bgcolor);
+      grid = 30;
+      maxRadius = grid/1;
+      defColor = color(64, 135, 194);
+      
+      // Create all dotts with initial properties
+      for (let i = 0; i < width; i += grid) {
+        for (let j = 0; j < height; j += grid) {
+          let dott = {
+            x: i,
+            y: j,
+            targetRadius: maxRadius * random(0.7,0.8),
+            currentRadius: 0,
+            animationDuration: random(500, 2000), // Random time between 0.5s and 2s
+            startTime: millis(),
+            color: color(random(150, 200)),
+            displayColor: color(random(150, 200))
+          };
+          dotts.push(dott);
+        }
+      }
+      
+      // Enable animation
+      frameRate(60);
+      loop();
+      
+      noStroke();
+    }
+
+    function draw() {
+      background(25, 25, 40);
+      dotCanvas.background(25, 25, 40);
+      
+      // Update and draw all dotts
+      for (let dott of dotts) {
+        // Calculate normal animation progress
+        let elapsed = (millis() - dott.startTime) % (dott.animationDuration * 2);
+        let normalProgress;
+        
+        if (elapsed < dott.animationDuration) {
+          // Expanding phase
+          normalProgress = elapsed / dott.animationDuration;
+        } else {
+          // Contracting phase
+          normalProgress = 2 - (elapsed / dott.animationDuration);
+        }
+        
+        // Base radius from animation
+        let baseRadius = normalProgress * dott.targetRadius;
+        
+        // Calculate distance from mouse
+        let distance = dist(mouseX, mouseY, dott.x, dott.y);
+        let mouseInfluenceRadius = 300; // Radius of mouse influence
+        let mouseEffect = 0;
+        
+        if (distance < mouseInfluenceRadius) {
+          dott.currentRadius = baseRadius;
+          dott.displayColor = defColor;
+        } else {
+          dott.currentRadius = baseRadius;
+          dott.displayColor = defColor;
+        }
+        
+        // Draw the dot
+        dotCanvas.fill(dott.displayColor);
+        dotCanvas.ellipse(dott.x, dott.y, dott.currentRadius, dott.currentRadius);
+      }
+      push();
+      drawingContext.filter = `blur(${blurAmount}px)`;
+      image(dotCanvas, 0, 0);
+      pop();
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      
+      // Clear and regenerate dotts for new window size
+      dotts = [];
+      for (let i = 0; i < width; i += grid) {
+        for (let j = 0; j < height; j += grid) {
+          let dott = {
+            x: i,
+            y: j,
+            targetRadius: random(0, maxRadius),
+            currentRadius: 0,
+            animationDuration: random(500, 2000),
+            startTime: millis(),
+            color: color(random(150, 200)),
+            displayColor: color(random(150, 200))
+          };
+          dotts.push(dott);
+        }
+      }
+    }
+  </script>
 </body>
 </html>
