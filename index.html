@@ -51,7 +51,7 @@
     let grid;
     let dotts = [];
     let maxRadius;
-    let blurAmount = 30; // Adjust blur intensity
+    let blurAmount = 30; 
     let dotCanvas;
     let bgcolor;
     let defColor;
@@ -59,7 +59,7 @@
     function setup() {
       createCanvas(windowWidth, windowHeight);
       
-      pixelDensity(1); // Important for consistent filter effects
+      pixelDensity(1); 
       dotCanvas = createGraphics(width, height);
       
       bgcolor = color(25, 25, 40);
@@ -76,7 +76,7 @@
             y: j,
             targetRadius: maxRadius * random(0.7,0.8),
             currentRadius: 0,
-            animationDuration: random(500, 2000), // Random time between 0.5s and 2s
+            animationDuration: random(500, 2000),
             startTime: millis(),
             color: color(random(150, 200)),
             displayColor: color(random(150, 200))
