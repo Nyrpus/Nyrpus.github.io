@@ -3,7 +3,6 @@ const CONFIG = {
     paymentId: '+++RE/DAC/TED+++',
     blankPdf: "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4gPj4gPj4gL0NvbnRlbnRzIDQgMCBSID4+CmVuZG9iago0IDAgb2JqCjw8IC9MZW5ndGggNDUgPj4Kc3RyZWFtCkJUIC9CMSA2MCBUZiA1MCA2MDAgVGQgKFJFREFDVEVEKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA1CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI4OCAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDUgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjM4NAQlJUVPRg==",
 
-
     SUPPLIER: {
         companyName: 'REDACTED SUPPLIER',
         contactName: 'MR REDACTED SUPPLIER',
@@ -14,7 +13,6 @@ const CONFIG = {
         phone: '+00000000000',
         website: 'https://www.supplier.test'
     },
-
 
     CUSTOMER: {
         companyName: 'REDACTED CUSTOMER',
@@ -65,7 +63,7 @@ function handleFileSelection(file) {
     showStatus("");
 }
 
-// 2. Process File
+// Process File
 function runAnonymization() {
     if (!currentFile) return;
 
@@ -102,7 +100,7 @@ function performRedactionLogic(xmlDoc, originalFileName) {
 
     replaceTextIn(xmlDoc, "//*[local-name()='InvoiceDocumentReference']/*[local-name()='ID']", newId, xmlDoc);
 
-    // Parties
+    // ANONYMIZE PARTIES
     const anonymizeGroup = (paths, dataConfig, type) => {
         paths.forEach(path => {
             const parties = evaluateXPath(path, xmlDoc, xmlDoc);
@@ -194,11 +192,14 @@ function performRedactionLogic(xmlDoc, originalFileName) {
             barcodeNode.textContent = generateFixedId(barcodeNode.textContent, 'supplier');
         }
 
-        // Line DocumentReference ID
+        
         const lineDocRefNodes = evaluateXPath(".//*[local-name()='DocumentReference']/*[local-name()='ID']", line, xmlDoc);
         lineDocRefNodes.forEach(node => {
             if (node.textContent) node.textContent = "0000000000";
         });
+
+        replaceTextIn(line, ".//*[local-name()='Item']/*[local-name()='BuyersItemIdentification']/*[local-name()='ID']", `RED-BUYER-${lineId}`, xmlDoc);
+        replaceTextIn(line, ".//*[local-name()='Item']//*[local-name()='ItemClassificationCode']", "REDACTED CODE", xmlDoc);
     });
 
     // Properties
@@ -252,8 +253,31 @@ function performRedactionLogic(xmlDoc, originalFileName) {
         });
     });
 
-    // Attachments
+
     replaceTextIn(xmlDoc, "//*[local-name()='EmbeddedDocumentBinaryObject']", CONFIG.blankPdf, xmlDoc);
+
+    replaceTextIn(xmlDoc, "//*[local-name()='AdditionalDocumentReference']/*[local-name()='Attachment']/*[local-name()='ExternalReference']/*[local-name()='URI']", "https://redacted.test/resource", xmlDoc);
+
+    replaceTextIn(xmlDoc, "//*[local-name()='OrderReference']/*[local-name()='SalesOrderID']", "REDACTED SALES ORDER ID", xmlDoc);
+
+    replaceTextIn(xmlDoc, "//*[local-name()='ProjectReference']/*[local-name()='ID']", "REDACTED PROJECT ID", xmlDoc);
+
+    replaceTextIn(xmlDoc, "//*[local-name()='AccountingSupplierParty']/*[local-name()='Party']/*[local-name()='PartyLegalEntity']/*[local-name()='CompanyLegalForm']", "REDACTED LEGAL FORM", xmlDoc);
+
+    replaceTextIn(xmlDoc, "//*[local-name()='PaymentMeans']/*[local-name()='CardAccount']/*[local-name()='PrimaryAccountNumberID']", "0000000000000000", xmlDoc);
+    replaceTextIn(xmlDoc, "//*[local-name()='PaymentMeans']/*[local-name()='CardAccount']/*[local-name()='NetworkID']", "REDACTED NETWORK", xmlDoc);
+    replaceTextIn(xmlDoc, "//*[local-name()='PaymentMeans']/*[local-name()='CardAccount']/*[local-name()='HolderName']", "REDACTED HOLDER", xmlDoc);
+
+    const payerAccountNodes = evaluateXPath("//*[local-name()='PaymentMeans']/*[local-name()='PaymentMandate']/*[local-name()='PayerFinancialAccount']/*[local-name()='ID']", xmlDoc, xmlDoc);
+    payerAccountNodes.forEach(node => { if (node.textContent) node.textContent = generateFixedId(node.textContent, 'customer'); });
+
+    // Remove all XML comments
+    const comments = evaluateXPath("//comment()", xmlDoc, xmlDoc);
+    comments.forEach(comment => {
+        if (comment.parentNode) {
+            comment.parentNode.removeChild(comment);
+        }
+    });
 
     // Download
     const serializer = new XMLSerializer();
@@ -287,7 +311,7 @@ function triggerAutoDownload(content, newFileName) {
 // Reset UI 
 function resetUI() {
     currentFile = null;
-    document.getElementById('fileInput').value = "";
+    document.getElementById('fileInput').value = ""; // Clear file input
 
     const dropZone = document.getElementById('dropZone');
     const anonymizeBtn = document.getElementById('anonymizeBtn');
@@ -314,7 +338,7 @@ function resetUI() {
     showStatus("");
 }
 
-// Helper functions
+// --- HELPER FUNCTIONS ---
 
 function evaluateXPath(xpath, contextNode, docRoot) {
     const result = [];
@@ -391,6 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fileInput.files.length) handleFileSelection(fileInput.files[0]);
     });
 
-    // Action Button
+    // Action Buttons
     anonymizeBtn.addEventListener('click', runAnonymization);
 });
