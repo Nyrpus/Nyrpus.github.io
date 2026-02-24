@@ -4,12 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peppol Redactor</title>
+    <title>Peppol Anonymizer</title>
     <script src="eas_codes.js"></script>
     <script src="script.js"></script>
 
     <style>
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
         }
 
@@ -21,18 +23,17 @@
             overflow-y: auto;
         }
 
-
-
         body {
             background: linear-gradient(45deg, #211c25 10%, #3f3944 80%);
             background-attachment: fixed;
+            min-height: 100vh;
             font-family: "Courier New", Courier, monospace;
             color: #333;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            padding-top: 60px;
+            padding-top: 20px;
             width: 100%;
             overflow-x: hidden;
         }
@@ -45,13 +46,16 @@
             text-align: center;
         }
 
+        /* HEADLINE BLOCK */
         .redaction-block {
             font-family: "Courier New", Courier, monospace;
-            font-size: 0.9rem;
-            line-height: 2em;
-            letter-spacing: 3px;
+            font-size: min(0.9rem, 2.1vw);
+            line-height: 2;
+            letter-spacing: min(3px, 0.45vw);
             text-align: left;
-            width: 650px;
+
+            width: 100%;
+            max-width: 650px;
             margin: 0 auto 50px auto;
             white-space: nowrap;
             overflow: hidden;
@@ -71,28 +75,102 @@
             background-color: transparent;
             color: rgb(255, 255, 255);
             font-weight: 900;
-            font-size: 1.3rem;
+            font-size: min(1.3rem, 3.1vw);
             padding: 0 5px;
             text-decoration: none;
             vertical-align: middle;
             line-height: 0;
-            vertical-align: middle;
             display: inline-block;
         }
-        
-        
+
         .description-box {
             color: #dddcdc;
             text-align: left;
             margin: 0 auto 40px auto;
             max-width: 800px;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
+            transform: scaleX(0.9);
             line-height: 1.4;
-            font-weight: 500;
-            
+            font-weight: 700;
             text-align: justify;
         }
 
+        /* TOGGLES */
+        .options-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* background: rgba(0, 0, 0, 0.2); */
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid #3f3944;
+            color: #dddcdc;
+            font-size: 1.1rem;
+            
+            font-weight: 700;
+        }
+
+        /* The switch container */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+
+        /* Hide the default HTML checkbox */
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* The sliding background */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #3f3944;
+            /* Dark grey for OFF state */
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        /* Sliding circle */
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        /* Slider ON */
+        input:checked+.slider {
+            background-color: #524c64;
+        }
+
+        /* Slider ON */
+        input:checked+.slider:before {
+            transform: translateX(22px);
+        }
+
+        /* Drop Zone */
         .drop-zone {
             border: 3px dashed #c0c0c0;
             background-color: rgba(24, 22, 22, 0);
@@ -137,7 +215,6 @@
             padding: 2px 3px;
             text-decoration: none;
             border-radius: 10px;
-
             font-weight: bold;
             cursor: pointer;
             border: none;
@@ -164,19 +241,20 @@
         .error {
             color: #ef4444;
         }
+
         .side-note {
             position: fixed;
-            right: 1rem;       
-            top: 50%;        
-            transform: translateY(-50%) rotate(40deg); 
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%) rotate(40deg);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-weight: bold;
             font-size: 2rem;
             color: #c0c0c0;
             letter-spacing: 10px;
-            pointer-events: none; 
-            white-space: nowrap;  
-            z-index: -1;  
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: -1;
         }
     </style>
 </head>
@@ -193,31 +271,61 @@
             <br>
             <span class="redacted">000000000000000000000000000000000000000000000000000000000000000000</span><br>
             <span class="redacted">0000000000000000000000000000000000000000000000000000000000</span><br>
-            <span class="redacted">000000000000000</span><span class="visible-title">PEPPOL</span><span class="redacted">0000000000000000000000000000000000000</span><br>
-            <span class="redacted">00000000000000000000000000000</span><span class="visible-title">ANONYMIZER</span><span class="redacted">000000000000000000000</span><br>
+            <span class="redacted">000000000000000</span><span class="visible-title">PEPPOL</span><span
+                class="redacted">0000000000000000000000000000000000000</span><br>
+            <span class="redacted">00000000000000000000000000000</span><span
+                class="visible-title">ANONYMIZER</span><span class="redacted">000000000000000000000</span><br>
             <span class="redacted">000000000000000000000000000000000000000000000000000000000000000000</span><br>
             <span class="redacted">0000000000000000000000000000000000000000000000000</span><br>
         </div>
 
         <div class="description-box">
-            <span>This site redacts sensetive information from UBL/XML files, making them safe to share with third
-                parties for testing and AI analysis.</span><br><br>
-            <span>Most of the values are replaced with valid placeholders, except for: Country, Qty, Amounts, and Allowance/Charge Reasons.</span><br>
-            <br>
-            <span>Processing is done entirely in your browser. Nothing is stored on the server.</span><br><br>
-            <span>For bugs & feedback - contact IVSU</span><br>
+            <span>Redact sensitive information from UBL/XML files, making them safe to share with third
+                parties</span><br><br>
+            <span>All the values are replaced with valid placeholders, except for: Country, Qty, Amounts, and Allowance/Charge
+            Reasons/Codes</span><br><br>
             
+            <span>Processing is done entirely in your browser. Nothing is stored on the server.</span><br><br>
+           
         </div>
 
-        <!-- Drop Zone -->
+        <!-- <div class="options-container">
+            <div class="toggle-row">
+                <span>Supplier info</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggleSupplier" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <span>Customer info</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggleCustomer" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <span>Invoice line names</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggleProducts" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <span>Allowance/Charge Reasons</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggleReasons" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div> -->
+
         <div id="dropZone" class="drop-zone">
             [ CLICK OR DROP YOUR XML HERE ]
         </div>
 
-        <!-- Hidden Input -->
         <input type="file" id="fileInput" class="hidden" accept=".xml">
 
-        <!-- Anonymize Button -->
         <button id="anonymizeBtn" class="btn hidden">REDACT AND DOWNLOAD ></button>
 
         <div id="status"></div>
